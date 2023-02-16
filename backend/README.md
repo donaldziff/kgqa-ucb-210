@@ -1,6 +1,6 @@
 # askwiki backend
 
-This directory contains all code necessary to run our apps backend.
+This directory contains all code necessary to run our app's backend.
 
 Installation is slightly different on the prod (AWS) box: we need to add "sudo" before some
 commands.
