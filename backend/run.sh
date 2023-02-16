@@ -1,16 +1,8 @@
 #!/bin/bash
 
-IMAGE_NAME=lab2
-APP_NAME=lab2
+IMAGE_NAME=askwiki
+APP_NAME=askwiki
 MODEL_FILENAME="model_pipeline.pkl"
-
-# run the trainer if necessary
-FILE=${IMAGE_NAME}/${MODEL_FILENAME}
-if [ -f "$FILE" ]; then
-    echo "$FILE exists, skipping training"
-else 
-    (cd ${IMAGE_NAME} && poetry run python ../trainer/train.py)
-fi
 
 # stop and remove image in case this script was run before
 docker stop ${APP_NAME}
@@ -39,9 +31,9 @@ curl -o /dev/null -s -w "%{http_code}\n" -X GET "http://localhost:8000/hello?nam
 curl -o /dev/null -s -w "%{http_code}\n" -X GET "http://localhost:8000/"
 curl -o /dev/null -s -w "%{http_code}\n" -X GET "http://localhost:8000/docs"
 
-curl -o /dev/null -X POST "http://localhost:8000/predict/" \
+curl -o /dev/null -X POST "http://localhost:8000/completions/" \
    -H 'Content-Type: application/json' \
-   -d '{"MedInc": 8.3252, "HouseAge": 41, "AveRooms": 6.98412698, "AveBedrms": 1.02380952, "Population": 322.0, "AveOccup": 2.55555556, "Latitude": 37.88, "Longitude": -122.23}'
+   -d '{"pipeline": "dummy", "prompt": "what is the difference between a duck?"}'
 
 # output and tail the logs for the container
 docker logs -f ${APP_NAME}

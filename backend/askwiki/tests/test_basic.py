@@ -1,9 +1,9 @@
-# from James's solution
+# basics
 import pytest
 from fastapi.testclient import TestClient
 
-from lab2 import __version__
-from lab2.main import app
+from askwiki import __version__
+from askwiki.main import app
 
 client = TestClient(app)
 

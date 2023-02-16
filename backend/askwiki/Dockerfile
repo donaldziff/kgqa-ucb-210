@@ -7,7 +7,7 @@ ARG APP_DIR=/app
 FROM python:3.10-slim-buster AS build
 ARG APP_DIR
 
-# build dependencies from the lab2 README
+# build dependencies from the askwiki README
 RUN apt-get update && apt-get install -y \
   curl \
   build-essential \
@@ -15,7 +15,7 @@ RUN apt-get update && apt-get install -y \
   && rm -rf /var/lib/apt/lists/*
   
 # install poetry and add to path 
-ENV POETRY_VERSION=1.1.12
+ENV POETRY_VERSION=1.1.14
 RUN curl -sSL https://install.python-poetry.org | python -
 ENV PATH /root/.local/bin:$PATH
 
@@ -42,4 +42,4 @@ COPY  . ./
 
 HEALTHCHECK --start-period=30s CMD python -c "import requests; requests.get('http://localhost:8000/health', timeout=2)"
 
-CMD ["uvicorn", "lab2.main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uvicorn", "askwiki.main:app", "--host", "0.0.0.0", "--port", "8000"]
