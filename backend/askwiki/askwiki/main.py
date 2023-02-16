@@ -6,10 +6,10 @@ from pydantic import BaseModel
 
 import joblib
 
-model_filename = "model_pipeline.pkl"
-model_path = join(getcwd(), model_filename)
+# model_filename = "model_pipeline.pkl"
+# model_path = join(getcwd(), model_filename)
 
-PIPELINE = joblib.load(model_path)
+# PIPELINE = joblib.load(model_path)
 
 app = FastAPI()
 
@@ -27,51 +27,51 @@ async def hello(name: str):
 # /docs endpoint is defined by FastAPI automatically
 # /openapi.json returns a json object automatically by FastAPI
 
-class Prompt(BaseModel):
+class Question(BaseModel):
     pipeline: str
-    prompt: str
+    question: str
 
-class Completion(BaseModel):
+class Answer(BaseModel):
     pipeline: str
-    prompt: str
+    question: str
     sparql: str
     rawresults: str
     summary: str
 
 class DummyPipeline:
 
-    def generate_sparql(self, prompt):
+    def generate_sparql(self, question):
         return "this is supposed to be a sparql query"
 
     def run_sparql(self, query):
         return "this is supposed to be sparql query results"
 
-    def generate_summary(self, prompt, sparql_results):
+    def generate_summary(self, question, sparql_results):
         return "this is supposed to be a summary"
             
 def getPipeline(pipeline):
     return DummyPipeline()
 
-@app.post("/completions/")
-async def complete(p: Prompt):
+@app.post("/ask/")
+async def ask(p: Question):
 
     # choose the pipeline
     pipeline = getPipeline(p.pipeline)
     
     # generate sparql
-    sparql = pipeline.generate_sparql(p.prompt)
+    sparql = pipeline.generate_sparql(p.question)
 
     # run the sparql query
     rawresults = pipeline.run_sparql(sparql)
 
     # generate a summary
-    summary = pipeline.generate_summary(p.prompt, rawresults)
+    summary = pipeline.generate_summary(p.question, rawresults)
 
-    completion = Completion(pipeline=p.pipeline,
-                            prompt=p.prompt,
-                            sparql=sparql,
-                            rawresults=rawresults,
-                            summary=summary)
+    completion = Answer(pipeline=p.pipeline,
+                        question=p.question,
+                        sparql=sparql,
+                        rawresults=rawresults,
+                        summary=summary)
                             
     return completion
 
