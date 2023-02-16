@@ -39,9 +39,9 @@ In the examples below, I assume there is a shell variable set up something like 
 ```
 export ASKWIKI_HOST=localhost
 ```
-or, as appropriate,
+or, for the prod service,
 ```
-export ASKWIKI_HOST=ec2-54-202-208-55.us-west-2.compute.amazonaws.com
+export ASKWIKI_HOST=54.245.102.169
 ```
 
 ### Health Check
