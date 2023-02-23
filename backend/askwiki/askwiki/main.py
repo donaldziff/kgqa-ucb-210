@@ -44,7 +44,11 @@ class DummyPipeline:
         return "this is supposed to be a sparql query"
 
     def run_sparql(self, query):
-        return "this is supposed to be sparql query results"
+        csv_output = """
+obj,objLabel
+http://www.wikidata.org/entity/Q3486420,Sky
+"""
+        return csv_output
 
     def generate_summary(self, question, sparql_results):
         return "this is supposed to be a summary"
