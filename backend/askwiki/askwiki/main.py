@@ -103,13 +103,17 @@ async def ask(p: Question):
     
     # generate sparql
     sparql = pipeline.generate_sparql(p.question)
+    print(f'sparql {sparql}')
 
     # run the sparql query
     df_results = pipeline.run_sparql(sparql)
+    print(f'df_results {df_results}')
     rawresults = df_results.to_csv()
+    print(f'rawresults {df_results}')
 
     # generate a summary
     summary = pipeline.generate_summary(p.question, df_results)
+    print(f'summary {summary}')
 
     completion = Answer(pipeline=p.pipeline,
                         question=p.question,
