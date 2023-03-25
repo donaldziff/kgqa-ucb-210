@@ -74,14 +74,13 @@ class Gpt3T5Pipeline:
 
 pipeline_cache = {
     'default': {'class': DummyPipeline, 'instance': None},
-    'dummy': {'class': DummyPipeline, 'instance': None},
     'gpt3_t5': {'class': Gpt3T5Pipeline, 'instance': None}
 }
 
 def getPipeline(pipeline):
     if pipeline not in pipeline_cache:
-        print(f"can't find pipeline {pipeline}, using gpt3_t5")
-        pipeline = 'gpt3_t5'
+        print(f"can't find pipeline {pipeline}, using default")
+        pipeline = 'default'
     else:
         print(f'found pipeline {pipeline}')
     pipeline_dict = pipeline_cache[pipeline]
