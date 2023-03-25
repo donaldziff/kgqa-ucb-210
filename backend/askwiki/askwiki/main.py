@@ -1,3 +1,4 @@
+import logging
 import pandas as pd
 
 from fastapi import FastAPI, HTTPException
@@ -6,6 +7,9 @@ from pydantic import BaseModel
 from .gpt3_sparql import Gpt3SparqlGenerator
 from .wikibase_sparql_runner import WikibaseSparqlRunner
 from .t5_summarizer import T5Summarizer
+
+log = logging.getLogger("askwiki")
+log.setLevel(logging.INFO)
 
 app = FastAPI()
 
@@ -63,25 +67,32 @@ class Gpt3T5Pipeline:
                 v = row[col]
                 if v.find('http://www.wikidata.org/entity/') >= 0:
                     wikiobjects.append(col_.replace('http://www.wikidata.org/entity/', ''))
-        assertions = self.summarizer.get_wiki_prop(['Q6853', 'Q154869', 'Q157661'])
+        assertions = self.summarizer.get_wiki_prop(wikiobjects)
         wikibase_input = f"AskWiki NLG: {'&&'.join(assertions)}  </s>"
         summary = self.summarizer.generate_summary(wikibase_input)
         return summary
 
-PIPELINES = {
-    'default': DummyPipeline,
-    'gpt3_t5': Gpt3T5Pipeline
+pipeline_cache = {
+    'default': {'class': DummyPipeline, 'instance': None},
+    'gpt3_t5': {'class': Gpt3T5Pipeline, 'instance': None}
 }
 
 def getPipeline(pipeline):
-    if pipeline in PIPELINES:
-        return PIPELINES[pipeline]()
-    return DummyPipeline()
+    if pipeline not in pipeline_cache:
+        print(f"can't find pipeline {pipeline}, using default")
+        pipeline = 'default'
+    else:
+        print(f'found pipeline {pipeline}')
+    pipeline_dict = pipeline_cache[pipeline]
+    if pipeline_dict['instance'] is None:
+        print(f'instantiating pipeline {pipeline}')
+        pipeline_dict['instance'] = pipeline_dict['class']()
+    return pipeline_dict['instance']
 
 
 @app.get("/pipelines/")
 async def pipelines():
-    pipeline_names = [PipelineName(pipeline_name=n) for n in PIPELINES]
+    pipeline_names = [PipelineName(pipeline_name=n) for n in pipeline_cache]
     return pipeline_names
 
 @app.post("/ask/")

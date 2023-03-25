@@ -2,7 +2,6 @@
 
 IMAGE_NAME=askwiki
 APP_NAME=askwiki
-MODEL_FILENAME="model_pipeline.pkl"
 ASKWIKI_HOST=localhost
 
 # stop and remove image in case this script was run before
@@ -27,8 +26,6 @@ while ! $finished; do
 done
 
 # check a few endpoints and their http response
-curl -o /dev/null -s -w "%{http_code}\n" -X GET "http://$ASKWIKI_HOST:8000/hello?name=Max"
-curl -o /dev/null -s -w "%{http_code}\n" -X GET "http://$ASKWIKI_HOST:8000/hello?nam=Max"
 curl -o /dev/null -s -w "%{http_code}\n" -X GET "http://$ASKWIKI_HOST:8000/"
 curl -o /dev/null -s -w "%{http_code}\n" -X GET "http://$ASKWIKI_HOST:8000/docs"
 
