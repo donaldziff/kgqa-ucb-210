@@ -1,9 +1,7 @@
-import pytest
 import json
-from fastapi.testclient import TestClient
 
-from askwiki import __version__
 from askwiki.main import app
+from fastapi.testclient import TestClient
 
 client = TestClient(app)
 
