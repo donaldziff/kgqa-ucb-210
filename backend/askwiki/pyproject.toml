@@ -11,6 +11,11 @@ uvicorn = "^0.16.0"
 joblib = "^1.1.0"
 scipy = "^1.7"
 scikit-learn = "^1.0"
+openai = "^0.27.2"
+wikibaseintegrator = "^0.12.3"
+transformers = "^4.27.3"
+sentencepiece = "^0.1.97"
+wikidata = "^0.7.0"
 
 [tool.poetry.dev-dependencies]
 pytest = "^6.2"
