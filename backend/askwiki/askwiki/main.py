@@ -30,7 +30,7 @@ class Answer(BaseModel):
     pipeline: str
     question: str
     sparql: str
-    rawresults: list
+    rawresults: dict
     summary: str
 
 class DummyPipeline:
@@ -109,7 +109,7 @@ async def ask(p: Question):
     # run the sparql query
     df_results = pipeline.run_sparql(sparql)
     print(f'df_results {df_results}')
-    rawresults = json.loads(df_results.to_json(orient="records"))
+    rawresults = {c: list(df_results[c]) for c in df_results.columns}
     print(f'rawresults {df_results}')
 
     # generate a summary
