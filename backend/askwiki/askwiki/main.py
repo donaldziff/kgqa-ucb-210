@@ -73,8 +73,8 @@ class Gpt3T5Pipeline:
         return summary
 
 pipeline_cache = {
-    'default': {'class': DummyPipeline, 'instance': None},
-    'gpt3_t5': {'class': Gpt3T5Pipeline, 'instance': None}
+    'default': {'class': DummyPipeline, 'instance': DummyPipeline()},
+    'gpt3_t5': {'class': Gpt3T5Pipeline, 'instance': Gpt3T5Pipeline()}
 }
 
 def getPipeline(pipeline):
@@ -108,7 +108,7 @@ async def ask(p: Question):
     # run the sparql query
     df_results = pipeline.run_sparql(sparql)
     print(f'df_results {df_results}')
-    rawresults = df_results.to_csv()
+    rawresults = df_results.to_json()
     print(f'rawresults {df_results}')
 
     # generate a summary
