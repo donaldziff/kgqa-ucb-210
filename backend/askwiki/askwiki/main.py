@@ -1,5 +1,6 @@
 import logging
 import pandas as pd
+import json
 
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
@@ -29,7 +30,7 @@ class Answer(BaseModel):
     pipeline: str
     question: str
     sparql: str
-    rawresults: str
+    rawresults: list
     summary: str
 
 class DummyPipeline:
@@ -38,8 +39,8 @@ class DummyPipeline:
         return "this is supposed to be a sparql query"
 
     def run_sparql(self, query):
-        lst = [['http://www.wikidata.org/entity/Q3486420', 'Sky']]
-        df = pd.DataFrame(lst, columns=['obj', 'objLabel'])
+        df = pd.DataFrame({"sbj": ["wd:Q351363", "wd:Q331835", "wd:Q11533909"],
+                           "sbj_label": ["seamanship", "suction", "Senshoku ginōshi"]})
         return df
 
     def generate_summary(self, question, df):
@@ -108,7 +109,7 @@ async def ask(p: Question):
     # run the sparql query
     df_results = pipeline.run_sparql(sparql)
     print(f'df_results {df_results}')
-    rawresults = df_results.to_json()
+    rawresults = json.loads(df_results.to_json(orient="records"))
     print(f'rawresults {df_results}')
 
     # generate a summary
