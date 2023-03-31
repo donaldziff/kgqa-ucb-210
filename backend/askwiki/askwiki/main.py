@@ -1,4 +1,6 @@
+import logging
 import pandas as pd
+import json
 
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
@@ -6,6 +8,9 @@ from pydantic import BaseModel
 from .gpt3_sparql import Gpt3SparqlGenerator
 from .wikibase_sparql_runner import WikibaseSparqlRunner
 from .t5_summarizer import T5Summarizer
+
+log = logging.getLogger("askwiki")
+log.setLevel(logging.INFO)
 
 app = FastAPI()
 
@@ -25,7 +30,7 @@ class Answer(BaseModel):
     pipeline: str
     question: str
     sparql: str
-    rawresults: str
+    rawresults: dict
     summary: str
 
 class DummyPipeline:
@@ -34,8 +39,8 @@ class DummyPipeline:
         return "this is supposed to be a sparql query"
 
     def run_sparql(self, query):
-        lst = [['http://www.wikidata.org/entity/Q3486420', 'Sky']]
-        df = pd.DataFrame(lst, columns=['obj', 'objLabel'])
+        df = pd.DataFrame({"sbj": ["wd:Q351363", "wd:Q331835", "wd:Q11533909"],
+                           "sbj_label": ["seamanship", "suction", "Senshoku ginōshi"]})
         return df
 
     def generate_summary(self, question, df):
@@ -63,25 +68,32 @@ class Gpt3T5Pipeline:
                 v = row[col]
                 if v.find('http://www.wikidata.org/entity/') >= 0:
                     wikiobjects.append(col_.replace('http://www.wikidata.org/entity/', ''))
-        assertions = self.summarizer.get_wiki_prop(['Q6853', 'Q154869', 'Q157661'])
+        assertions = self.summarizer.get_wiki_prop(wikiobjects)
         wikibase_input = f"AskWiki NLG: {'&&'.join(assertions)}  </s>"
         summary = self.summarizer.generate_summary(wikibase_input)
         return summary
 
-PIPELINES = {
-    'default': DummyPipeline,
-    'gpt3_t5': Gpt3T5Pipeline
+pipeline_cache = {
+    'default': {'class': DummyPipeline, 'instance': DummyPipeline()},
+    'gpt3_t5': {'class': Gpt3T5Pipeline, 'instance': Gpt3T5Pipeline()}
 }
 
 def getPipeline(pipeline):
-    if pipeline in PIPELINES:
-        return PIPELINES[pipeline]()
-    return DummyPipeline()
+    if pipeline not in pipeline_cache:
+        print(f"can't find pipeline {pipeline}, using default")
+        pipeline = 'default'
+    else:
+        print(f'found pipeline {pipeline}')
+    pipeline_dict = pipeline_cache[pipeline]
+    if pipeline_dict['instance'] is None:
+        print(f'instantiating pipeline {pipeline}')
+        pipeline_dict['instance'] = pipeline_dict['class']()
+    return pipeline_dict['instance']
 
 
 @app.get("/pipelines/")
 async def pipelines():
-    pipeline_names = [PipelineName(pipeline_name=n) for n in PIPELINES]
+    pipeline_names = [PipelineName(pipeline_name=n) for n in pipeline_cache]
     return pipeline_names
 
 @app.post("/ask/")
@@ -92,13 +104,17 @@ async def ask(p: Question):
     
     # generate sparql
     sparql = pipeline.generate_sparql(p.question)
+    print(f'sparql {sparql}')
 
     # run the sparql query
     df_results = pipeline.run_sparql(sparql)
-    rawresults = df_results.to_csv()
+    print(f'df_results {df_results}')
+    rawresults = {c: list(df_results[c]) for c in df_results.columns}
+    print(f'rawresults {df_results}')
 
     # generate a summary
     summary = pipeline.generate_summary(p.question, df_results)
+    print(f'summary {summary}')
 
     completion = Answer(pipeline=p.pipeline,
                         question=p.question,

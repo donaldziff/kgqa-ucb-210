@@ -15,7 +15,7 @@ RUN apt-get update && apt-get install -y \
   && rm -rf /var/lib/apt/lists/*
   
 # install poetry and add to path 
-ENV POETRY_VERSION=1.1.14
+ENV POETRY_VERSION=1.3.2
 RUN curl -sSL https://install.python-poetry.org | python -
 ENV PATH /root/.local/bin:$PATH
 

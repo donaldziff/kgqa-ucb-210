@@ -16,6 +16,8 @@ wikibaseintegrator = "^0.12.3"
 transformers = "^4.27.3"
 sentencepiece = "^0.1.97"
 wikidata = "^0.7.0"
+pandas = "^1.5.3"
+torch = "^2.0.0"
 
 [tool.poetry.dev-dependencies]
 pytest = "^6.2"
