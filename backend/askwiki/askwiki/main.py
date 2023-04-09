@@ -1,6 +1,5 @@
 import logging
 import pandas as pd
-import json
 
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
@@ -8,6 +7,7 @@ from pydantic import BaseModel
 from .gpt3_sparql import Gpt3SparqlGenerator
 from .wikibase_sparql_runner import WikibaseSparqlRunner
 from .t5_summarizer import T5Summarizer
+from .langchain_sparql import LangchainSparqlGenerator
 
 log = logging.getLogger("askwiki")
 log.setLevel(logging.INFO)
@@ -73,9 +73,37 @@ class Gpt3T5Pipeline:
         summary = self.summarizer.generate_summary(wikibase_input)
         return summary
 
+class LangchainT5Pipeline:
+    def __init__(self):
+        self.sparql_generator = LangchainSparqlGenerator()
+        self.sparql_runner = WikibaseSparqlRunner()
+        self.summarizer = T5Summarizer()
+
+    def generate_sparql(self, question):
+        sparql = self.sparql_generator.generate_sparql(question)
+        return sparql
+
+    def run_sparql(self, query):
+        df = self.sparql_runner.run_sparql_to_df(query)
+        return df
+
+    def generate_summary(self, question, df):
+        # find the objects in the result
+        wikiobjects = []
+        for index, row in df.iterrows():
+            for col in df.columns:
+                v = row[col]
+                if v.find('http://www.wikidata.org/entity/') >= 0:
+                    wikiobjects.append(col_.replace('http://www.wikidata.org/entity/', ''))
+        assertions = self.summarizer.get_wiki_prop(wikiobjects)
+        wikibase_input = f"AskWiki NLG: {'&&'.join(assertions)}  </s>"
+        summary = self.summarizer.generate_summary(wikibase_input)
+        return summary
+
 pipeline_cache = {
     'default': {'class': DummyPipeline, 'instance': DummyPipeline()},
-    'gpt3_t5': {'class': Gpt3T5Pipeline, 'instance': Gpt3T5Pipeline()}
+    'gpt3_t5': {'class': Gpt3T5Pipeline, 'instance': Gpt3T5Pipeline()},
+    'langchain_t5': {'class': LangchainT5Pipeline, 'instance': LangchainT5Pipeline()}
 }
 
 def getPipeline(pipeline):
@@ -104,17 +132,17 @@ async def ask(p: Question):
     
     # generate sparql
     sparql = pipeline.generate_sparql(p.question)
-    print(f'sparql {sparql}')
+    log.info(f'sparql {sparql}')
 
     # run the sparql query
     df_results = pipeline.run_sparql(sparql)
-    print(f'df_results {df_results}')
+    log.info(f'df_results {df_results}')
     rawresults = {c: list(df_results[c]) for c in df_results.columns}
-    print(f'rawresults {df_results}')
+    log.info(f'rawresults {df_results}')
 
     # generate a summary
     summary = pipeline.generate_summary(p.question, df_results)
-    print(f'summary {summary}')
+    log.info(f'summary {summary}')
 
     completion = Answer(pipeline=p.pipeline,
                         question=p.question,
