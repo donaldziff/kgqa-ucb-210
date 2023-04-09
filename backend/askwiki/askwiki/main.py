@@ -100,10 +100,28 @@ class LangchainT5Pipeline:
         summary = self.summarizer.generate_summary(wikibase_input)
         return summary
 
+class LangchainDummyPipeline:
+    def __init__(self):
+        self.sparql_generator = LangchainSparqlGenerator()
+        self.sparql_runner = WikibaseSparqlRunner()
+
+    def generate_sparql(self, question):
+        sparql = self.sparql_generator.generate_sparql(question)
+        return sparql
+
+    def run_sparql(self, query):
+        df = self.sparql_runner.run_sparql_to_df(query)
+        return df
+
+    def generate_summary(self, question, df):
+        summary = 'this is supposed to be the summary'
+        return summary
+
 pipeline_cache = {
     'default': {'class': DummyPipeline, 'instance': DummyPipeline()},
-    'gpt3_t5': {'class': Gpt3T5Pipeline, 'instance': Gpt3T5Pipeline()},
-    'langchain_t5': {'class': LangchainT5Pipeline, 'instance': LangchainT5Pipeline()}
+    'gpt3_t5': {'class': Gpt3T5Pipeline, 'instance': None},
+    'langchain_t5': {'class': LangchainT5Pipeline, 'instance': None},
+    'langchain_dummy': {'class': LangchainDummyPipeline, 'instance': LangchainDummyPipeline()}
 }
 
 def getPipeline(pipeline):

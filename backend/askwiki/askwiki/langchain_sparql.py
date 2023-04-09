@@ -29,7 +29,7 @@ def get_nested_value(nested_dict: Dict[str, Any], path: List[str]) -> Optional[A
 
 def vocab_lookup(search: str, entity_type: str = "item",
                  item_tag: str = None,
-                 srqiprofile: str = "classic_noboostlinks") -> Optional[str]:
+                 srqiprofile: str = "classic") -> Optional[str]:
     if item_tag is not None:
         if item_tag.startswith("q-"):
             entity_type = "item"
@@ -93,7 +93,7 @@ class LangchainSparqlGenerator:
     def __init__(self, model=MODEL_NAME):
         config = configparser.ConfigParser()
         config.read('secrets.ini')
-        openai_api_key = config['OPENAI']['OPENAI_API_KEY']
+        self.openai_api_key = config['OPENAI']['OPENAI_API_KEY']
 
         system_prompt_template = """
 You are an expert on sparql and wikibase. I have a private wikibase where the p and q items are completely unknown to you. 
@@ -142,7 +142,7 @@ Respond only with the json. Do not include any comments or explanations.
           "vocabulary": [
             {{
               "item_tag": "q-JSBach",
-              "item_label_quesses": ["Johann Sebastian Bach", "Bach, Johann Sebastian", "J.S. Bach"]
+              "item_label_quesses": ["J.S. Bach", "Johann Sebastian Bach", "Bach, Johann Sebastian"]
             }},
             {{
               "item_tag": "p-Child",
@@ -163,16 +163,24 @@ Respond only with the json. Do not include any comments or explanations.
         human_template = "Please generate query template json for this question: {text}"
         human_message_prompt = HumanMessagePromptTemplate.from_template(human_template)
 
-        chat_prompt = ChatPromptTemplate.from_messages(
+        self.chat_prompt = ChatPromptTemplate.from_messages(
             [system_message_prompt, example_human_1, example_ai_1, example_human_2, example_ai_2,
              human_message_prompt])
 
-        chat = ChatOpenAI(temperature=0, openai_api_key=openai_api_key)
-        self.chain = LLMChain(llm=chat, prompt=chat_prompt)
-
-
     def generate_sparql(self, question):
+        chat = ChatOpenAI(temperature=0, openai_api_key=self.openai_api_key)
+        self.chain = LLMChain(llm=chat, prompt=self.chat_prompt)
         template = self.chain.run(f'generate a query template json for the question {question}')
+
+        start_index = template.find('{')
+        end_index = template.rfind('}')
+        if start_index != -1 and end_index != -1 and start_index < end_index:
+            template = template[start_index:end_index + 1]
+        else:
+            return None
+
         log.info(f"template: {template}")
+        print(template)
+
         query = resolve_query_template(eval(template))
         return query

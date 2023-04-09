@@ -2429,6 +2429,7 @@ wikiprop = {
 }
 class T5Summarizer:
     def __init__(self):
+        print("Instantiating T5Summarizer")
         config = configparser.ConfigParser()
         config.read('secrets.ini')
         login(token=config['HUGGINGFACE']['ACCESS_TOKEN'])
