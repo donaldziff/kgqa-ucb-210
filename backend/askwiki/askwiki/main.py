@@ -1,18 +1,21 @@
 import logging
-import pandas as pd
 
-from fastapi import FastAPI, HTTPException
+import pandas as pd
+from fastapi import FastAPI
 from pydantic import BaseModel
 
 from .gpt3_sparql import Gpt3SparqlGenerator
-from .wikibase_sparql_runner import WikibaseSparqlRunner
-from .t5_summarizer import T5Summarizer
 from .langchain_sparql import LangchainSparqlGenerator
+from .t5_summarizer import T5Summarizer
+from .wikibase_sparql_runner import WikibaseSparqlRunner
+from .gpt3_summarizer import Gpt3Summarizer
+from .langchain_agent import LangchainWikibaseAgent
 
 log = logging.getLogger("askwiki")
 log.setLevel(logging.INFO)
 
 app = FastAPI()
+
 
 @app.get("/health")
 async def health():
@@ -22,9 +25,11 @@ async def health():
 class PipelineName(BaseModel):
     pipeline_name: str
 
+
 class Question(BaseModel):
     pipeline: str
     question: str
+
 
 class Answer(BaseModel):
     pipeline: str
@@ -33,7 +38,28 @@ class Answer(BaseModel):
     rawresults: dict
     summary: str
 
-class DummyPipeline:
+
+class SimplePipeline():
+
+    def run(self, question):
+        # generate sparql
+        sparql = self.generate_sparql(question)
+        log.info(f'sparql {sparql}')
+
+        # run the sparql query
+        df_results = self.run_sparql(sparql)
+        log.info(f'df_results {df_results}')
+        rawresults = {c: list(df_results[c]) for c in df_results.columns}
+        log.info(f'rawresults {df_results}')
+
+        # generate a summary
+        summary = self.generate_summary(question, df_results)
+        log.info(f'summary {summary}')
+
+        return sparql, rawresults, summary
+
+
+class DummyPipeline(SimplePipeline):
 
     def generate_sparql(self, question):
         return "this is supposed to be a sparql query"
@@ -46,7 +72,8 @@ class DummyPipeline:
     def generate_summary(self, question, df):
         return "this is supposed to be a summary"
 
-class Gpt3T5Pipeline:
+
+class Gpt3T5Pipeline(SimplePipeline):
     def __init__(self):
         self.sparql_generator = Gpt3SparqlGenerator()
         self.sparql_runner = WikibaseSparqlRunner()
@@ -73,7 +100,8 @@ class Gpt3T5Pipeline:
         summary = self.summarizer.generate_summary(wikibase_input)
         return summary
 
-class LangchainT5Pipeline:
+
+class LangchainT5Pipeline(SimplePipeline):
     def __init__(self):
         self.sparql_generator = LangchainSparqlGenerator()
         self.sparql_runner = WikibaseSparqlRunner()
@@ -100,7 +128,8 @@ class LangchainT5Pipeline:
         summary = self.summarizer.generate_summary(wikibase_input)
         return summary
 
-class LangchainDummyPipeline:
+
+class LangchainDummyPipeline(SimplePipeline):
     def __init__(self):
         self.sparql_generator = LangchainSparqlGenerator()
         self.sparql_runner = WikibaseSparqlRunner()
@@ -117,12 +146,40 @@ class LangchainDummyPipeline:
         summary = 'this is supposed to be the summary'
         return summary
 
+class LangchainGpt3SummarizerPipeline():
+
+    def __init__(self):
+        self.sparql_generator = LangchainSparqlGenerator()
+        self.summarizer = Gpt3Summarizer()
+
+    def run(self, question):
+        # generate sparql
+        sparql = self.sparql_generator.generate_sparql(question)
+        log.info(f'sparql {sparql}')
+        rawresults, summary = self.summarizer.run_sparql_and_summarize(sparql)
+        return sparql, rawresults, summary
+
+
+class LangchainAgentPipeline():
+
+    def __init__(self):
+        self.agent = LangchainWikibaseAgent()
+
+    def run(self, question):
+        # generate sparql
+        summary = self.agent.generate_sparql_run_and_summarize(question)
+        return "", {}, summary
+
+
+
 pipeline_cache = {
     'default': {'class': DummyPipeline, 'instance': DummyPipeline()},
     'gpt3_t5': {'class': Gpt3T5Pipeline, 'instance': None},
     'langchain_t5': {'class': LangchainT5Pipeline, 'instance': None},
-    'langchain_dummy': {'class': LangchainDummyPipeline, 'instance': LangchainDummyPipeline()}
+    'langchain_gpt3': {'class': LangchainGpt3SummarizerPipeline, 'instance': None},
+    'agent': {'class': LangchainAgentPipeline, 'instance': None}
 }
+
 
 def getPipeline(pipeline):
     if pipeline not in pipeline_cache:
@@ -142,33 +199,18 @@ async def pipelines():
     pipeline_names = [PipelineName(pipeline_name=n) for n in pipeline_cache]
     return pipeline_names
 
+
 @app.post("/ask/")
 async def ask(p: Question):
-
     # choose the pipeline
     pipeline = getPipeline(p.pipeline)
-    
-    # generate sparql
-    sparql = pipeline.generate_sparql(p.question)
-    log.info(f'sparql {sparql}')
 
-    # run the sparql query
-    df_results = pipeline.run_sparql(sparql)
-    log.info(f'df_results {df_results}')
-    rawresults = {c: list(df_results[c]) for c in df_results.columns}
-    log.info(f'rawresults {df_results}')
+    sparql, rawresults, summary = pipeline.run(p.question)
 
-    # generate a summary
-    summary = pipeline.generate_summary(p.question, df_results)
-    log.info(f'summary {summary}')
+    answer = Answer(pipeline=p.pipeline,
+                    question=p.question,
+                    sparql=sparql,
+                    rawresults=rawresults,
+                    summary=summary)
 
-    completion = Answer(pipeline=p.pipeline,
-                        question=p.question,
-                        sparql=sparql,
-                        rawresults=rawresults,
-                        summary=summary)
-                            
-    return completion
-
-
-
+    return answer
