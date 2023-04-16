@@ -28,4 +28,13 @@ def test_delta():
     assert len(sparql) > 0
     print(sparql)
 
+def test_bach():
+    ssg = LangchainSparqlGenerator()
+    question = "How many children did J.S. Bach have?"
+    sparql = ssg.generate_sparql(question)
+    assert sparql is not None
+    assert isinstance(sparql, str)
+    assert len(sparql) > 0
+    print(sparql)
+
 

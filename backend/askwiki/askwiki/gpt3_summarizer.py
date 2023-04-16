@@ -8,7 +8,7 @@ endpoint_url = "https://query.wikidata.org/sparql"
 from wikidata.client import Client
 import openai
 
-WIKIPROP = {
+wikiprop = {
     "P6": "head of government",
     "P7": "brother",
     "P9": "sister",
