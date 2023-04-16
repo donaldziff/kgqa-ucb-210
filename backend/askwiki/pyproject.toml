@@ -19,6 +19,7 @@ wikidata = "^0.7.0"
 pandas = "^1.5.3"
 torch = "^2.0.0"
 langchain = "^0.0.135"
+sparqlwrapper = "^2.0.0"
 
 [tool.poetry.dev-dependencies]
 pytest = "^6.2"
