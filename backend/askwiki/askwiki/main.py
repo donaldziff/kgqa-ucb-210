@@ -168,7 +168,9 @@ class LangchainAgentPipeline():
     def run(self, question):
         # generate sparql
         summary = self.agent.generate_sparql_run_and_summarize(question)
-        return "", {}, summary
+        return "this is supposed to be a sparql query", \
+            { "sbj": [ "wd:Q351363", "wd:Q331835", "wd:Q11533909" ], "sbj_label": [ "seamanship", "suction", "Senshoku ginōshi" ] }, \
+            summary
 
 
 
