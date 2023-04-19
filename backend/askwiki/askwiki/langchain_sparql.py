@@ -152,13 +152,33 @@ Respond only with the json. Do not include any comments or explanations.
         }}
         """
 
+        example3_human = """
+        generate a query template json for the question "What is the capital of France?"
+        """
+
+        example3_ai = """
+        {{
+          "query_template": "SELECT ?capital WHERE {{ wd:q-France wdt:p-Capital ?capital . }}",
+          "vocabulary": [
+            {{
+              "item_tag": "q-France",
+              "item_label_quesses": ["France"]
+            }},
+            {{
+              "item_tag": "p-Capital",
+              "item_label_quesses": ["Capital", "Capital city"]
+            }}
+          ]
+        }}
+        """
+
         template = system_prompt_template
         system_message_prompt = SystemMessagePromptTemplate.from_template(template)
 
         example_human_1 = HumanMessagePromptTemplate.from_template(example1_human)
         example_ai_1 = AIMessagePromptTemplate.from_template(example1_ai)
-        example_human_2 = HumanMessagePromptTemplate.from_template(example2_human)
-        example_ai_2 = AIMessagePromptTemplate.from_template(example2_ai)
+        example_human_2 = HumanMessagePromptTemplate.from_template(example3_human)
+        example_ai_2 = AIMessagePromptTemplate.from_template(example3_ai)
 
         human_template = "Please generate query template json for this question: {text}"
         human_message_prompt = HumanMessagePromptTemplate.from_template(human_template)
