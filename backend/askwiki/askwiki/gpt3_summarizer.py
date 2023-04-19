@@ -2465,27 +2465,64 @@ class Gpt3Summarizer:
         )
         return response
 
-    def getwikiprop_3(self, wikidf, wikiobjects):
+    # This function makes sure that we limit input to NLG models to about 500 tokens
+    def generate_input(self, input_str, token_limit=1500):
+        output = ''
+        # For performance reasons limiting the overall response to 1500 tokens
+        if token_limit > 1500:
+            token_limit = 1500
+        for i in input_str.split(' && '):
+            if len((output).split()) + len((i).split()) < token_limit:
+                if output:
+                    output = output + ' && ' + i
+                else:
+                    output = i
+            else:
+                break
+        return output
+
+    def getwikiprop_3(self, wikidf, wikiobjects, token_limit=1500):
         client = Client()
         descriptions = []  # labels for wikidata level 1 results
+        descriptions_str = ''
+        details = []
+        details_str = ''
         # Sparql gave no results ,df and wikiobjects are both empty
         if wikidf.empty and not wikiobjects:
             descriptions.append('Wikidata | Answer | No matching records found')
+            descriptions_str = (' && ').join(descriptions)
         elif not wikidf.empty and not wikiobjects:
             label = list(wikidf.columns)[0]
             value = str(wikidf.iloc[0][0])
             descriptions.append('Answer | ' + label + ' | ' + value)
+            descriptions_str = (' && ').join(descriptions)
         else:
             # Extract wikidata objects summary
+            # get level 1 descriptions first, so it covers all the answers
             for w in wikiobjects:
                 entity = client.get(w, load=True)
                 entity_label = str(entity.label)
                 descriptions.append(entity_label + ' | Description | ' + str(entity.description))
-                for i in entity.iterlists():
-                    label = wikiprop.get(str(i[0]).replace('<wikidata.entity.Entity', '').replace('>', '').strip())
-                    if label and str(i[1][0]).find('<wikidata.') < 0:
-                        descriptions.append(entity_label + ' | ' + label + ' | ' + str(i[1][0]))
-        askwiki_openai_input = (' && ').join(descriptions)
+                # get additional details about the wikidata object
+                j = 0
+                y = entity.iterlists()
+                x = iter(y)
+                while j < 10:
+                    j = j + 1
+                    try:
+                        i = x.__next__()
+                        label = wikiprop.get(str(i[0]).replace('<wikidata.entity.Entity', '').replace('>', '').strip())
+                        if label and str(i[1][0]).find('<wikidata.') < 0:
+                            details.append(entity_label + ' | ' + label + ' | ' + str(i[1][0]))
+                    except:
+                        continue
+            details_str = (' && ').join(details)
+            descriptions_str = (' && ').join(descriptions)
+        if details_str:
+            input_str = descriptions_str + ' && ' + details_str
+        else:
+            input_str = descriptions_str
+        askwiki_openai_input = self.generate_input(input_str, token_limit)
         askwiki_nlg_input = 'AskWiki NLG: ' + askwiki_openai_input
         return askwiki_openai_input, askwiki_nlg_input
 
