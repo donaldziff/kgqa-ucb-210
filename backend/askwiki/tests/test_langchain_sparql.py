@@ -37,4 +37,12 @@ def test_bach():
     assert len(sparql) > 0
     print(sparql)
 
+def test_ravanalova():
+    ssg = LangchainSparqlGenerator()
+    question = "Who is the child of the husband of Ravanalova I?"
+    sparql = ssg.generate_sparql(question)
+    assert sparql is not None
+    assert isinstance(sparql, str)
+    assert len(sparql) > 0
+    print(sparql)
 

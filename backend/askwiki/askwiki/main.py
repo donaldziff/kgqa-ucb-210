@@ -155,7 +155,7 @@ class LangchainGpt3SummarizerPipeline():
     def run(self, question):
         # generate sparql
         sparql = self.sparql_generator.generate_sparql(question)
-        log.info(f'sparql {sparql}')
+        print(f'sparql {sparql}')
         rawresults, summary = self.summarizer.run_sparql_and_summarize(sparql)
         return sparql, rawresults, summary
 

@@ -72,7 +72,7 @@ def vocab_lookup_with_alternatives(search_terms, item_tag=None):
         term = vocab_lookup(s, item_tag=item_tag)
         if term is not None:
             return term
-    raise Exception
+    return ""
 
 def resolve_query_template(t):
     vocab_items = [(v["item_tag"], v["item_label_quesses"]) for v in t["vocabulary"]]
